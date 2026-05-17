@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+// Import your architecture dependencies
+import '../expenses/presentation/bloc/expense_bloc.dart';
+import '../expenses/presentation/bloc/expense_state.dart';
+import '../expenses/presentation/pages/expenses_pages.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Exact hex color extraction from your design images
     const Color purpleAccent = Color(0xFF9333EA);
     const Color blueAccent = Color(0xFF2563EB);
     const Color greenAccent = Color(0xFF10B981);
     const Color redAccent = Color(0xFFEF4444);
     
-    const Color bgCanvas = Color(0xFFF8FAFC); // Clean off-white background
-    const Color textDark = Color(0xFF0F172A);  // Deep slate for headers
-    const Color textMuted = Color(0xFF64748B); // Cool gray for subtexts
+    const Color bgCanvas = Color(0xFFF8FAFC); 
+    const Color textDark = Color(0xFF0F172A);  
+    const Color textMuted = Color(0xFF64748B); 
 
     return Scaffold(
       backgroundColor: bgCanvas,
@@ -23,7 +28,7 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. App Header (Icon box + App Title block)
+              // 1. App Header
               Row(
                 children: [
                   Container(
@@ -62,36 +67,50 @@ class DashboardPage extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // 2. Metrics Horizontal Scroll Cards Matrix
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildStandardMetricCard(
-                      title: 'Total Expenses',
-                      value: '\$2450.50',
-                      subtext: 'This month',
-                      icon: Icons.trending_up_rounded,
-                      accentColor: blueAccent,
+              // 2. Metrics Horizontal Scroll Matrix (Made Dynamic)
+              BlocBuilder<ExpenseBloc, ExpenseState>(
+                builder: (context, state) {
+                  double totalExpenses = 0.0;
+                  double budget = 5000.00;
+
+                  if (state is ExpenseLoaded) {
+                    totalExpenses = state.expenses.fold(0.0, (sum, item) => sum + item.amount);
+                  }
+
+                  double remaining = budget - totalExpenses;
+                  double usedPercentage = (totalExpenses / budget).clamp(0.0, 1.0);
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _buildStandardMetricCard(
+                          title: 'Total Expenses',
+                          value: '\$${totalExpenses.toStringAsFixed(2)}',
+                          subtext: 'This month',
+                          icon: Icons.trending_up_rounded,
+                          accentColor: blueAccent,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildProgressBarMetricCard(
+                          title: 'Budget',
+                          value: '\$${budget.toStringAsFixed(2)}',
+                          usedPercentage: usedPercentage,
+                          accentColor: purpleAccent,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildStandardMetricCard(
+                          title: 'Remaining',
+                          value: '\$${remaining.toStringAsFixed(2)}',
+                          subtext: 'Available to spend',
+                          icon: Icons.add_rounded,
+                          accentColor: greenAccent,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    _buildProgressBarMetricCard(
-                      title: 'Budget',
-                      value: '\$5000.00',
-                      usedPercentage: 0.49, // 49.0% used indicator
-                      accentColor: purpleAccent,
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStandardMetricCard(
-                      title: 'Remaining',
-                      value: '\$2549.50',
-                      subtext: 'Available to spend',
-                      icon: Icons.add_rounded,
-                      accentColor: greenAccent,
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 32),
 
@@ -103,7 +122,7 @@ class DashboardPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.015),
+                      color: Colors.black.withValues(alpha: 0.015),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -127,7 +146,10 @@ class DashboardPage extends StatelessWidget {
                       icon: Icons.add_rounded,
                       backgroundColor: purpleAccent,
                       onPressed: () {
-                        // Navigation link to your expenses screen goes here
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => ExpensesPage()),
+                        );
                       },
                     ),
                     const SizedBox(height: 12),
@@ -136,7 +158,7 @@ class DashboardPage extends StatelessWidget {
                       icon: Icons.add_rounded,
                       backgroundColor: blueAccent,
                       onPressed: () {
-                        // Navigation link to your transactions screen goes here
+                        // Will link your transactional features here
                       },
                     ),
                   ],
@@ -158,7 +180,12 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ExpensesPage()),
+                      );
+                    },
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -181,24 +208,42 @@ class DashboardPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Recent Activity Feed List Items
-              _buildActivityRowItem(
-                title: 'Groceries',
-                timestamp: 'Today',
-                amount: '-\$85.40',
-                amountColor: redAccent,
-              ),
-              _buildActivityRowItem(
-                title: 'John',
-                timestamp: 'Yesterday',
-                amount: '+\$200.00',
-                amountColor: greenAccent,
-              ),
-              _buildActivityRowItem(
-                title: 'Coffee',
-                timestamp: '2 days ago',
-                amount: '-\$5.50',
-                amountColor: redAccent,
+              // Recent Activity Feed List Items (Made Dynamic)
+              BlocBuilder<ExpenseBloc, ExpenseState>(
+                builder: (context, state) {
+                  if (state is ExpenseLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (state is ExpenseLoaded) {
+                    if (state.expenses.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text('No recent activities.', style: TextStyle(color: textMuted)),
+                      );
+                    }
+
+                    // Display up to 3 elements for clean dashboard presentation previewing
+                    final previewList = state.expenses.take(3).toList();
+
+                    return Column(
+                      children: previewList.map((expense) {
+                        return _buildActivityRowItem(
+                          title: expense.title,
+                          timestamp: "${expense.date.year}-${expense.date.month.toString().padLeft(2, '0')}-${expense.date.day.toString().padLeft(2, '0')}",
+                          amount: '-\$${expense.amount.toStringAsFixed(2)}',
+                          amountColor: redAccent,
+                        );
+                      }).toList(),
+                    );
+                  }
+                  
+                  if (state is ExpenseError) {
+                    return Text('Error updating stream: ${state.message}', style: const TextStyle(color: redAccent));
+                  }
+
+                  return const SizedBox.shrink();
+                },
               ),
             ],
           ),
@@ -207,7 +252,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  // Helper Card Builder for Total Expenses & Remaining sections
+  // Helper Card Builder for Total Expenses & Remaining sections (Removed broken fixed heights)
   Widget _buildStandardMetricCard({
     required String title,
     required String value,
@@ -216,35 +261,33 @@ class DashboardPage extends StatelessWidget {
     required Color accentColor,
   }) {
     return Container(
-      width: 142,
-      height: 160,
+      width: 160,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1), // FIXED: Cleared '0新建F1F5F9' typo
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              Text(value, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-            ],
+          Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          Text(
+            value, 
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            maxLines: 1,
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(subtext, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
-              const SizedBox(height: 10),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.08),
+                  color: accentColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: accentColor, size: 18),
@@ -264,8 +307,7 @@ class DashboardPage extends StatelessWidget {
     required Color accentColor,
   }) {
     return Container(
-      width: 142,
-      height: 160,
+      width: 160,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -274,34 +316,28 @@ class DashboardPage extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 6),
-              Text(value, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-            ],
+          Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          Text(
+            value, 
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            maxLines: 1,
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: usedPercentage,
-                  backgroundColor: const Color(0xFFE2E8F0),
-                  valueColor: AlwaysStoppedAnimation<Color>(accentColor),
-                  minHeight: 6,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${(usedPercentage * 100).toStringAsFixed(1)}% used', 
-                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w500),
-              ),
-            ],
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: usedPercentage,
+              backgroundColor: const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${(usedPercentage * 100).toStringAsFixed(1)}% used', 
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ],
       ),
