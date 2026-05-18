@@ -4,6 +4,7 @@ import '../bloc/expense_bloc.dart';
 import '../bloc/expense_event.dart';
 import '../bloc/expense_state.dart';
 import '../widgets/expense_card.dart';
+import '../../domain/entities/expense.dart';
 
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
@@ -13,6 +14,9 @@ class ExpensesPage extends StatefulWidget {
 }
 
 class _ExpensesPageState extends State<ExpensesPage> {
+  double _dailyBudget = 100.00;
+
+
   @override
   void initState() {
     super.initState();
@@ -69,7 +73,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      // We will link your Add Expense overlay sheet or workflow here next
+                      _showAddExpenseDialog(context);
                     },
                     icon: const Icon(Icons.add, size: 18, color: Colors.white),
                     label: const Text('Add Expense', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -101,10 +105,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('\$100.00', style: TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.bold)),
+                        Text('\$${_dailyBudget.toStringAsFixed(2)}', style: const TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.bold)),
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, color: textMuted, size: 20),
-                          onPressed: () {},
+                          onPressed: () {
+                            _showEditBudgetDialog(context);
+                          },
                           style: IconButton.styleFrom(
                             side: const BorderSide(color: Color(0xFFE2E8F0)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -210,6 +216,123 @@ class _ExpensesPageState extends State<ExpensesPage> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showEditBudgetDialog(BuildContext context) {
+    final TextEditingController controller = TextEditingController(text: _dailyBudget.toStringAsFixed(2));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Daily Budget'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Budget Amount',
+            prefixText: '\$',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newBudget = double.tryParse(controller.text);
+              if (newBudget != null) {
+                setState(() {
+                  _dailyBudget = newBudget;
+                });
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddExpenseDialog(BuildContext context) {
+    final TextEditingController titleController = TextEditingController();
+    final TextEditingController amountController = TextEditingController();
+    final TextEditingController categoryController = TextEditingController(text: 'General');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Add Expense', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Amount', prefixText: '\$'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final amount = double.tryParse(amountController.text);
+                    if (titleController.text.isNotEmpty && amount != null) {
+                      // We need to import the entity for the model if not there, but it is typically handled by bloc event.
+                      // Wait, we need Expense entity! The import might be missing.
+                      // We will add import '../../domain/entities/expense.dart'; at the top of the file if needed.
+                      // Let's create an expense with a dummy ID using DateTime and current date.
+                      final newExpense = Expense(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        title: titleController.text,
+                        amount: amount,
+                        category: categoryController.text,
+                        date: DateTime.now(),
+                      );
+                      context.read<ExpenseBloc>().add(AddExpenseEvent(newExpense));
+                      Navigator.pop(ctx);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a valid title and numeric amount'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: const Color(0xFF9333EA),
+                  ),
+                  child: const Text('Save Expense', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }

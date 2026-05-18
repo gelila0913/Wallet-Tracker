@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../expenses/presentation/bloc/expense_bloc.dart';
 import '../expenses/presentation/bloc/expense_state.dart';
 import '../expenses/presentation/pages/expenses_pages.dart';
+import '../transaction/presentation/pages/transactions_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -86,6 +87,7 @@ class DashboardPage extends StatelessWidget {
                     child: Row(
                       children: [
                         _buildStandardMetricCard(
+                          context: context,
                           title: 'Total Expenses',
                           value: '\$${totalExpenses.toStringAsFixed(2)}',
                           subtext: 'This month',
@@ -94,6 +96,7 @@ class DashboardPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         _buildProgressBarMetricCard(
+                          context: context,
                           title: 'Budget',
                           value: '\$${budget.toStringAsFixed(2)}',
                           usedPercentage: usedPercentage,
@@ -101,6 +104,7 @@ class DashboardPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         _buildStandardMetricCard(
+                          context: context,
                           title: 'Remaining',
                           value: '\$${remaining.toStringAsFixed(2)}',
                           subtext: 'Available to spend',
@@ -158,7 +162,10 @@ class DashboardPage extends StatelessWidget {
                       icon: Icons.add_rounded,
                       backgroundColor: blueAccent,
                       onPressed: () {
-                        // Will link your transactional features here
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TransactionsPage()),
+                        );
                       },
                     ),
                   ],
@@ -254,6 +261,7 @@ class DashboardPage extends StatelessWidget {
 
   // Helper Card Builder for Total Expenses & Remaining sections (Removed broken fixed heights)
   Widget _buildStandardMetricCard({
+    required BuildContext context,
     required String title,
     required String value,
     required String subtext,
@@ -261,7 +269,7 @@ class DashboardPage extends StatelessWidget {
     required Color accentColor,
   }) {
     return Container(
-      width: 160,
+      width: MediaQuery.of(context).size.width * 0.4,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -301,13 +309,14 @@ class DashboardPage extends StatelessWidget {
 
   // Helper Card Builder for the Budget Card featuring a progress bar
   Widget _buildProgressBarMetricCard({
+    required BuildContext context,
     required String title,
     required String value,
     required double usedPercentage,
     required Color accentColor,
   }) {
     return Container(
-      width: 160,
+      width: MediaQuery.of(context).size.width * 0.4,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -394,20 +403,24 @@ class DashboardPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title, 
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                timestamp, 
-                style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title, 
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  timestamp, 
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 12),
           Text(
             amount,
             style: TextStyle(

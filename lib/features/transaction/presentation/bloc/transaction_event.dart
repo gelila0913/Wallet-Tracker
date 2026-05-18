@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../../domain/entities/transaction.dart';
+import '../../domain/entities/transaction.dart';
 
 abstract class TransactionEvent extends Equatable {
   const TransactionEvent();
@@ -39,4 +39,14 @@ class ToggleTransactionStatusEvent extends TransactionEvent {
 
   @override
   List<Object?> get props => [id];
+}
+
+// Triggered when editing a transaction
+class EditTransactionEvent extends TransactionEvent {
+  final TransactionEntity transaction;
+
+  const EditTransactionEvent(this.transaction);
+
+  @override
+  List<Object?> get props => [transaction];
 }

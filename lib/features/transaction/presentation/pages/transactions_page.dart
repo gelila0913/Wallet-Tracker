@@ -13,6 +13,8 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -77,7 +79,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         const SizedBox(width: 12),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // TODO: Open bottom sheet / dialog to add transaction
+                            _showAddTransactionDialog(context);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00829B), // Matching transaction accent cyan
@@ -118,6 +120,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
                     // 3. SEARCH FILTER BLOCK
                     TextField(
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
                       decoration: InputDecoration(
                         hintText: "Search by person name...",
                         prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
@@ -148,15 +155,32 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         ),
                       )
                     else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: state.transactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final item = state.transactions[index];
-                          return _buildTransactionCard(context, item);
-                        },
+                      Builder(
+                        builder: (context) {
+                          final filteredTransactions = state.transactions
+                              .where((t) => t.personName.toLowerCase().contains(_searchQuery.toLowerCase()))
+                              .toList();
+                              
+                          if (filteredTransactions.isEmpty && _searchQuery.isNotEmpty) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(top: 40),
+                                child: Text("No transactions match your search.", style: TextStyle(color: Color(0xFF64748B))),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredTransactions.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final item = filteredTransactions[index];
+                              return _buildTransactionCard(context, item);
+                            },
+                          );
+                        }
                       ),
                   ],
                 ),
@@ -296,13 +320,33 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6), size: 20),
                     onPressed: () {
-                      // TODO: Hook edit sheet transaction context form
+                      _showEditTransactionDialog(context, item);
                     },
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 20),
                     onPressed: () {
-                      context.read<TransactionBloc>().add(DeleteTransactionEvent(item.id));
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Transaction'),
+                          content: const Text('Are you sure you want to delete this transaction?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<TransactionBloc>().add(DeleteTransactionEvent(item.id));
+                                Navigator.pop(ctx);
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -326,6 +370,124 @@ class _TransactionsPageState extends State<TransactionsPage> {
         text,
         style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+
+  void _showAddTransactionDialog(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+    final TextEditingController amountController = TextEditingController();
+    bool isYouOwe = true;
+    bool isPaid = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setStateBottomSheet) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Add Transaction', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Person Name'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Amount', prefixText: 'ETB '),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Type:'),
+                      DropdownButton<bool>(
+                        value: isYouOwe,
+                        items: const [
+                          DropdownMenuItem(value: true, child: Text('You Owe')),
+                          DropdownMenuItem(value: false, child: Text('They Owe')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setStateBottomSheet(() => isYouOwe = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Status:'),
+                      DropdownButton<bool>(
+                        value: isPaid,
+                        items: const [
+                          DropdownMenuItem(value: false, child: Text('Pending')),
+                          DropdownMenuItem(value: true, child: Text('Paid')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setStateBottomSheet(() => isPaid = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final amount = double.tryParse(amountController.text);
+                        if (nameController.text.isNotEmpty && descriptionController.text.isNotEmpty && amount != null) {
+                          final newTransaction = TransactionEntity(
+                            id: DateTime.now().millisecondsSinceEpoch.toString(),
+                            personName: nameController.text,
+                            description: descriptionController.text,
+                            amount: amount,
+                            isYouOwe: isYouOwe,
+                            isPaid: isPaid,
+                            date: DateTime.now(),
+                          );
+                          context.read<TransactionBloc>().add(AddTransactionEvent(newTransaction));
+                          Navigator.pop(ctx);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill all fields correctly'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: const Color(0xFF00829B),
+                      ),
+                      child: const Text('Save Transaction', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

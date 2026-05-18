@@ -42,4 +42,18 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<void> togglePaymentStatus(String id) async {
     // TODO: Implement toggle updates by fetching, changing boolean state, and re-saving
   }
+
+  @override
+  Future<void> editTransaction(TransactionEntity transaction) async {
+    final model = TransactionModel(
+      id: transaction.id,
+      personName: transaction.personName,
+      description: transaction.description,
+      amount: transaction.amount,
+      isYouOwe: transaction.isYouOwe,
+      isPaid: transaction.isPaid,
+      date: transaction.date,
+    );
+    return await localDataSource.editTransaction(model);
+  }
 }

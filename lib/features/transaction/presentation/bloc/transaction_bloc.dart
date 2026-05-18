@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'transaction_event.dart';
 import 'transaction_state.dart';
-import '../../../domain/repositories/transaction_repository.dart';
+import '../../domain/repositories/transaction_repository.dart';
 
 class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   final TransactionRepository repository;
@@ -12,6 +12,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     on<AddTransactionEvent>(_onAddTransaction);
     on<DeleteTransactionEvent>(_onDeleteTransaction);
     on<ToggleTransactionStatusEvent>(_onToggleTransactionStatus);
+    on<EditTransactionEvent>(_onEditTransaction);
   }
 
   Future<void> _onLoadTransactions(
@@ -64,6 +65,19 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       emit(TransactionLoaded(transactions: transactions));
     } catch (e) {
       emit(TransactionError("Could not update payment status: ${e.toString()}"));
+    }
+  }
+
+  Future<void> _onEditTransaction(
+    EditTransactionEvent event,
+    Emitter<TransactionState> emit,
+  ) async {
+    try {
+      await repository.editTransaction(event.transaction);
+      final transactions = await repository.getTransactions();
+      emit(TransactionLoaded(transactions: transactions));
+    } catch (e) {
+      emit(TransactionError("Could not edit record: ${e.toString()}"));
     }
   }
 }

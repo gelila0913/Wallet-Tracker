@@ -76,7 +76,27 @@ class ExpenseCard extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, color: redAccent, size: 20),
                 onPressed: () {
-                  context.read<ExpenseBloc>().add(DeleteExpenseEvent(expense.id));
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Expense'),
+                      content: const Text('Are you sure you want to delete this expense?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<ExpenseBloc>().add(DeleteExpenseEvent(expense.id));
+                            Navigator.pop(ctx);
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: redAccent),
+                          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  );
                 },
               ),
             ],
