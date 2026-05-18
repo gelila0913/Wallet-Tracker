@@ -27,3 +27,12 @@ class DeleteExpenseEvent extends ExpenseEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class EditExpenseEvent extends ExpenseEvent {
+  final Expense expense;
+
+  const EditExpenseEvent(this.expense);
+
+  @override
+  List<Object?> get props => [expense];
+}

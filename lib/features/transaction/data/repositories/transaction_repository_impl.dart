@@ -40,7 +40,22 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<void> togglePaymentStatus(String id) async {
-    // TODO: Implement toggle updates by fetching, changing boolean state, and re-saving
+    final transactions = await localDataSource.getLastTransactions();
+    final existingIndex = transactions.indexWhere((transaction) => transaction.id == id);
+    if (existingIndex == -1) {
+      throw Exception('Transaction with id $id not found');
+    }
+    final existingTransaction = transactions[existingIndex];
+    final updatedTransaction = TransactionModel(
+      id: existingTransaction.id,
+      personName: existingTransaction.personName,
+      description: existingTransaction.description,
+      amount: existingTransaction.amount,
+      isYouOwe: existingTransaction.isYouOwe,
+      isPaid: !existingTransaction.isPaid,
+      date: existingTransaction.date,
+    );
+    await localDataSource.editTransaction(updatedTransaction);
   }
 
   @override

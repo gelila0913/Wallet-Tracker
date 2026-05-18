@@ -7,21 +7,42 @@ import '../widgets/expense_card.dart';
 import '../../domain/entities/expense.dart';
 
 class ExpensesPage extends StatefulWidget {
-  const ExpensesPage({super.key});
+  final ValueNotifier<double> budgetNotifier;
+
+  const ExpensesPage({super.key, required this.budgetNotifier});
 
   @override
   State<ExpensesPage> createState() => _ExpensesPageState();
 }
 
 class _ExpensesPageState extends State<ExpensesPage> {
-  double _dailyBudget = 100.00;
-
+  String _searchQuery = '';
+  DateTime? _selectedDate;
+  final Set<String> _expandedDateGroups = {};
 
   @override
   void initState() {
     super.initState();
     // Dispatch initial read load sequence event
     context.read<ExpenseBloc>().add(LoadExpensesEvent());
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (selected != null) {
+      setState(() {
+        _selectedDate = selected;
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -42,20 +63,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
               // Header Row Block matching your screenshot design layout
               Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: textDark),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 4),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDBEAFE),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFF2563EB), size: 24),
-                  ),
-                  const SizedBox(width: 12),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +112,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('\$${_dailyBudget.toStringAsFixed(2)}', style: const TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.bold)),
+                        ValueListenableBuilder<double>(
+                          valueListenable: widget.budgetNotifier,
+                          builder: (context, budget, _) {
+                            return Text('\$${budget.toStringAsFixed(2)}', style: const TextStyle(color: textDark, fontSize: 28, fontWeight: FontWeight.bold));
+                          },
+                        ),
                         IconButton(
                           icon: const Icon(Icons.edit_outlined, color: textMuted, size: 20),
                           onPressed: () {
@@ -123,12 +135,18 @@ class _ExpensesPageState extends State<ExpensesPage> {
               ),
               const SizedBox(height: 12),
 
-              // Total Sum Aggregator State Card Widget Block
+              // Today's Expense Total Card
               BlocBuilder<ExpenseBloc, ExpenseState>(
                 builder: (context, state) {
-                  double totalSum = 0.00;
+                  double todaySum = 0.00;
                   if (state is ExpenseLoaded) {
-                    totalSum = state.expenses.fold(0.0, (sum, item) => sum + item.amount);
+                    final now = DateTime.now();
+                    todaySum = state.expenses
+                        .where((item) =>
+                            item.date.year == now.year &&
+                            item.date.month == now.month &&
+                            item.date.day == now.day)
+                        .fold(0.0, (sum, item) => sum + item.amount);
                   }
                   return Container(
                     width: double.infinity,
@@ -141,10 +159,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Total Expenses', style: TextStyle(color: textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+                        const Text('Today\'s Total', style: TextStyle(color: textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 6),
                         Text(
-                          '\$${totalSum.toStringAsFixed(2)}',
+                          '\$${todaySum.toStringAsFixed(2)}',
                           style: const TextStyle(color: textDark, fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -156,9 +174,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
               // Search Control Box Input Decorator
               TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Search expenses...',
                   prefixIcon: const Icon(Icons.search_rounded, color: textMuted),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_selectedDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedDate = null),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.close, size: 18, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month_rounded, color: textMuted),
+                        onPressed: () => _pickDate(context),
+                      ),
+                    ],
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -172,6 +213,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                 ),
               ),
+              if (_selectedDate != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          'Showing expenses for ${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: textMuted, fontSize: 13),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: textMuted),
+                      onPressed: () => setState(() => _selectedDate = null),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 24),
 
               // Reactive Activity Stream Feed Core Block
@@ -185,20 +252,104 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                     );
                   } else if (state is ExpenseLoaded) {
-                    if (state.expenses.isEmpty) {
-                      return const Center(
+                    final filteredExpenses = state.expenses.where((expense) {
+                      final queryText = '${expense.title} ${expense.category}'.toLowerCase();
+                      final matchesSearch = _searchQuery.isEmpty || queryText.contains(_searchQuery.toLowerCase());
+                      final matchesDate = _selectedDate == null || (
+                        expense.date.year == _selectedDate!.year &&
+                        expense.date.month == _selectedDate!.month &&
+                        expense.date.day == _selectedDate!.day
+                      );
+                      return matchesSearch && matchesDate;
+                    }).toList();
+
+                    if (filteredExpenses.isEmpty) {
+                      return Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Text('No expense metrics recorded yet.', style: TextStyle(color: textMuted)),
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Text(
+                            _searchQuery.isNotEmpty || _selectedDate != null
+                              ? 'No expenses match this filter.'
+                              : 'No expense metrics recorded yet.',
+                            style: const TextStyle(color: textMuted),
+                          ),
                         ),
                       );
                     }
+
+                    final Map<String, List<Expense>> groupedExpenses = {};
+                    for (final expense in filteredExpenses) {
+                      final dateKey = _formatDate(expense.date);
+                      groupedExpenses.putIfAbsent(dateKey, () => []).add(expense);
+                    }
+
+                    final sortedDateKeys = groupedExpenses.keys.toList()
+                      ..sort((a, b) => DateTime.parse(b).compareTo(DateTime.parse(a)));
+
                     return ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: state.expenses.length,
+                      itemCount: sortedDateKeys.length,
                       itemBuilder: (context, index) {
-                        return ExpenseCard(expense: state.expenses[index]);
+                        final dayKey = sortedDateKeys[index];
+                        final dayExpenses = groupedExpenses[dayKey]!;
+                        final dayTotal = dayExpenses.fold(0.0, (sum, item) => sum + item.amount);
+                        final isExpanded = _expandedDateGroups.contains(dayKey);
+
+                        return Column(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isExpanded) {
+                                    _expandedDateGroups.remove(dayKey);
+                                  } else {
+                                    _expandedDateGroups.add(dayKey);
+                                  }
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            dayKey,
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textDark),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '${dayExpenses.length} expense${dayExpenses.length == 1 ? '' : 's'} • Total: \$${dayTotal.toStringAsFixed(2)}',
+                                            style: const TextStyle(fontSize: 13, color: textMuted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                                      color: textMuted,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (isExpanded)
+                              Column(
+                                children: dayExpenses
+                                    .map((expense) => ExpenseCard(expense: expense))
+                                    .toList(),
+                              ),
+                          ],
+                        );
                       },
                     );
                   } else if (state is ExpenseError) {
@@ -220,7 +371,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   }
 
   void _showEditBudgetDialog(BuildContext context) {
-    final TextEditingController controller = TextEditingController(text: _dailyBudget.toStringAsFixed(2));
+    final TextEditingController controller = TextEditingController(text: widget.budgetNotifier.value.toStringAsFixed(2));
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -242,9 +393,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
             onPressed: () {
               final newBudget = double.tryParse(controller.text);
               if (newBudget != null) {
-                setState(() {
-                  _dailyBudget = newBudget;
-                });
+                widget.budgetNotifier.value = newBudget;
                 Navigator.pop(ctx);
               }
             },

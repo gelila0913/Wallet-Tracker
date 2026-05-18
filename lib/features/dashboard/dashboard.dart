@@ -7,8 +7,22 @@ import '../expenses/presentation/bloc/expense_state.dart';
 import '../expenses/presentation/pages/expenses_pages.dart';
 import '../transaction/presentation/pages/transactions_page.dart';
 
-class DashboardPage extends StatelessWidget {
+class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  double _zoomFactor = 1.0;
+  final ValueNotifier<double> _budgetNotifier = ValueNotifier<double>(100.00);
+
+  @override
+  void dispose() {
+    _budgetNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,23 +47,14 @@ class DashboardPage extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: purpleAccent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_outlined, 
-                      color: Colors.white, 
-                      size: 26,
-                    ),
+                    
                   ),
                   const SizedBox(width: 14),
                   const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ExpenseBook',
+                        'Walet Tracker',
                         style: TextStyle(
                           fontSize: 26, 
                           fontWeight: FontWeight.bold, 
@@ -66,53 +71,89 @@ class DashboardPage extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Text(
+                    'Dashboard zoom',
+                    style: TextStyle(fontSize: 14 * _zoomFactor, color: textMuted),
+                  ),
+                  const SizedBox(width: 10),
+                  IconButton(
+                    icon: const Icon(Icons.zoom_out, size: 20),
+                    color: _zoomFactor > 0.8 ? textDark : textMuted.withValues(alpha: 128),
+                    onPressed: _zoomFactor > 0.8
+                        ? () => setState(() => _zoomFactor = (_zoomFactor - 0.1).clamp(0.8, 1.4))
+                        : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.zoom_in, size: 20),
+                    color: _zoomFactor < 1.4 ? textDark : textMuted.withValues(alpha: 128),
+                    onPressed: _zoomFactor < 1.4
+                        ? () => setState(() => _zoomFactor = (_zoomFactor + 0.1).clamp(0.8, 1.4))
+                        : null,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${(_zoomFactor * 100).round()}%',
+                    style: TextStyle(fontSize: 13 * _zoomFactor, color: textMuted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
 
               // 2. Metrics Horizontal Scroll Matrix (Made Dynamic)
               BlocBuilder<ExpenseBloc, ExpenseState>(
                 builder: (context, state) {
                   double totalExpenses = 0.0;
-                  double budget = 5000.00;
 
                   if (state is ExpenseLoaded) {
                     totalExpenses = state.expenses.fold(0.0, (sum, item) => sum + item.amount);
                   }
 
-                  double remaining = budget - totalExpenses;
-                  double usedPercentage = (totalExpenses / budget).clamp(0.0, 1.0);
+                  return ValueListenableBuilder<double>(
+                    valueListenable: _budgetNotifier,
+                    builder: (context, budget, _) {
+                      final double remaining = budget - totalExpenses;
+                      final double usedPercentage = budget > 0 ? (totalExpenses / budget).clamp(0.0, 1.0) : 0.0;
 
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: [
-                        _buildStandardMetricCard(
-                          context: context,
-                          title: 'Total Expenses',
-                          value: '\$${totalExpenses.toStringAsFixed(2)}',
-                          subtext: 'This month',
-                          icon: Icons.trending_up_rounded,
-                          accentColor: blueAccent,
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            _buildStandardMetricCard(
+                              context: context,
+                              title: 'Total Expenses',
+                              value: '\$${totalExpenses.toStringAsFixed(2)}',
+                              subtext: 'This month',
+                              icon: Icons.trending_up_rounded,
+                              accentColor: blueAccent,
+                              scale: _zoomFactor,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildProgressBarMetricCard(
+                              context: context,
+                              title: 'Budget',
+                              value: '\$${budget.toStringAsFixed(2)}',
+                              usedPercentage: usedPercentage,
+                              accentColor: purpleAccent,
+                              scale: _zoomFactor,
+                            ),
+                            const SizedBox(width: 12),
+                            _buildStandardMetricCard(
+                              context: context,
+                              title: 'Remaining',
+                              value: '\$${remaining.toStringAsFixed(2)}',
+                              subtext: 'Available to spend',
+                              icon: Icons.add_rounded,
+                              accentColor: greenAccent,
+                              scale: _zoomFactor,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        _buildProgressBarMetricCard(
-                          context: context,
-                          title: 'Budget',
-                          value: '\$${budget.toStringAsFixed(2)}',
-                          usedPercentage: usedPercentage,
-                          accentColor: purpleAccent,
-                        ),
-                        const SizedBox(width: 12),
-                        _buildStandardMetricCard(
-                          context: context,
-                          title: 'Remaining',
-                          value: '\$${remaining.toStringAsFixed(2)}',
-                          subtext: 'Available to spend',
-                          icon: Icons.add_rounded,
-                          accentColor: greenAccent,
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -152,7 +193,7 @@ class DashboardPage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => ExpensesPage()),
+                          MaterialPageRoute(builder: (_) => ExpensesPage(budgetNotifier: _budgetNotifier)),
                         );
                       },
                     ),
@@ -190,7 +231,7 @@ class DashboardPage extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => ExpensesPage()),
+                        MaterialPageRoute(builder: (_) => ExpensesPage(budgetNotifier: _budgetNotifier)),
                       );
                     },
                     style: TextButton.styleFrom(
@@ -267,9 +308,10 @@ class DashboardPage extends StatelessWidget {
     required String subtext,
     required IconData icon,
     required Color accentColor,
+    double scale = 1.0,
   }) {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.4,
+      width: MediaQuery.of(context).size.width * 0.4 * scale,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -279,18 +321,18 @@ class DashboardPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
+          Text(title, style: TextStyle(color: const Color(0xFF64748B), fontSize: 13 * scale, fontWeight: FontWeight.w500)),
+          SizedBox(height: 6 * scale),
           Text(
-            value, 
-            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            value,
+            style: TextStyle(color: const Color(0xFF0F172A), fontSize: 21 * scale, fontWeight: FontWeight.bold, letterSpacing: -0.5),
             maxLines: 1,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * scale),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subtext, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+              Text(subtext, style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 11 * scale)),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(6),
@@ -314,9 +356,10 @@ class DashboardPage extends StatelessWidget {
     required String value,
     required double usedPercentage,
     required Color accentColor,
+    double scale = 1.0,
   }) {
     return Container(
-      width: MediaQuery.of(context).size.width * 0.4,
+      width: MediaQuery.of(context).size.width * 0.4 * scale,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -326,14 +369,14 @@ class DashboardPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
+          Text(title, style: TextStyle(color: const Color(0xFF64748B), fontSize: 13 * scale, fontWeight: FontWeight.w500)),
+          SizedBox(height: 6 * scale),
           Text(
-            value, 
-            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 21, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            value,
+            style: TextStyle(color: const Color(0xFF0F172A), fontSize: 21 * scale, fontWeight: FontWeight.bold, letterSpacing: -0.5),
             maxLines: 1,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20 * scale),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
@@ -359,10 +402,11 @@ class DashboardPage extends StatelessWidget {
     required IconData icon,
     required Color backgroundColor,
     required VoidCallback onPressed,
+    double scale = 1.0,
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 52 * scale,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -373,11 +417,11 @@ class DashboardPage extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Icon(icon, color: Colors.white, size: 20 * scale),
             const SizedBox(width: 8),
             Text(
-              label, 
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              label,
+              style: TextStyle(color: Colors.white, fontSize: 16 * scale, fontWeight: FontWeight.w600),
             ),
           ],
         ),

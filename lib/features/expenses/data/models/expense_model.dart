@@ -10,12 +10,16 @@ class ExpenseModel extends Expense {
   });
 
   factory ExpenseModel.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'];
+    final rawDate = json['date'] as String?;
     return ExpenseModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      category: json['category'] as String,
-      date: DateTime.parse(json['date'] as String),
+      id: rawId is int ? rawId.toString() : rawId as String,
+      title: (json['title'] ?? json['name']) as String? ?? 'Untitled Expense',
+      amount: ((json['amount'] ?? json['price']) as num?)?.toDouble() ?? 0.0,
+      category: (json['category'] as String?) ?? 'General',
+      date: rawDate != null
+          ? DateTime.parse(rawDate)
+          : DateTime.now(),
     );
   }
 
@@ -23,6 +27,7 @@ class ExpenseModel extends Expense {
     return {
       'id': id,
       'title': title,
+      'price': amount,
       'amount': amount,
       'category': category,
       'date': date.toIso8601String(),

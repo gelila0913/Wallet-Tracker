@@ -21,9 +21,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
-  Future<void> addExpense(Expense expense) async {
+  Future<Expense> addExpense(Expense expense) async {
     try {
-      // Convert abstract domain entity down to specific data layer serialization model
       final model = ExpenseModel(
         id: expense.id,
         title: expense.title,
@@ -31,9 +30,25 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         category: expense.category,
         date: expense.date,
       );
-      await remoteDataSource.addExpense(model);
+      return await remoteDataSource.addExpense(model);
     } catch (e) {
       throw Exception('Failed to save new record: $e');
+    }
+  }
+
+  @override
+  Future<Expense> updateExpense(Expense expense) async {
+    try {
+      final model = ExpenseModel(
+        id: expense.id,
+        title: expense.title,
+        amount: expense.amount,
+        category: expense.category,
+        date: expense.date,
+      );
+      return await remoteDataSource.updateExpense(model);
+    } catch (e) {
+      throw Exception('Failed to update expense: $e');
     }
   }
 

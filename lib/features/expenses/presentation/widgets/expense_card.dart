@@ -74,6 +74,12 @@ class ExpenseCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent, size: 20),
+                onPressed: () {
+                  _showEditExpenseDialog(context, expense);
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.delete_outline_rounded, color: redAccent, size: 20),
                 onPressed: () {
                   showDialog(
@@ -103,6 +109,83 @@ class ExpenseCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditExpenseDialog(BuildContext context, Expense expense) {
+    final TextEditingController titleController = TextEditingController(text: expense.title);
+    final TextEditingController amountController = TextEditingController(text: expense.amount.toStringAsFixed(2));
+    final TextEditingController categoryController = TextEditingController(text: expense.category);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Edit Expense', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Amount', prefixText: '\$'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(labelText: 'Category'),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final updatedAmount = double.tryParse(amountController.text);
+                    if (titleController.text.isNotEmpty && updatedAmount != null) {
+                      final updatedExpense = Expense(
+                        id: expense.id,
+                        title: titleController.text,
+                        amount: updatedAmount,
+                        category: categoryController.text,
+                        date: expense.date,
+                      );
+                      context.read<ExpenseBloc>().add(EditExpenseEvent(updatedExpense));
+                      Navigator.pop(ctx);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter a valid title and numeric amount'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: const Color(0xFF2563EB),
+                  ),
+                  child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }

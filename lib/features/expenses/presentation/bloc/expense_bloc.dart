@@ -9,6 +9,7 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
   ExpenseBloc({required this.repository}) : super(ExpenseInitial()) {
     on<LoadExpensesEvent>(_onLoadExpenses);
     on<AddExpenseEvent>(_onAddExpense);
+    on<EditExpenseEvent>(_onEditExpense);
     on<DeleteExpenseEvent>(_onDeleteExpense);
   }
 
@@ -29,12 +30,41 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     AddExpenseEvent event,
     Emitter<ExpenseState> emit,
   ) async {
-    try {
-      await repository.addExpense(event.expense);
-      // Automatically refresh the expense list state after a successful addition
-      add(LoadExpensesEvent());
-    } catch (e) {
-      emit(ExpenseError(e.toString()));
+    if (state is ExpenseLoaded) {
+      final currentList = (state as ExpenseLoaded).expenses;
+      emit(ExpenseLoading());
+      try {
+        final addedExpense = await repository.addExpense(event.expense);
+        emit(ExpenseLoaded([addedExpense, ...currentList]));
+      } catch (e) {
+        emit(ExpenseError(e.toString()));
+      }
+    } else {
+      try {
+        final addedExpense = await repository.addExpense(event.expense);
+        emit(ExpenseLoaded([addedExpense]));
+      } catch (e) {
+        emit(ExpenseError(e.toString()));
+      }
+    }
+  }
+
+  Future<void> _onEditExpense(
+    EditExpenseEvent event,
+    Emitter<ExpenseState> emit,
+  ) async {
+    if (state is ExpenseLoaded) {
+      final currentList = (state as ExpenseLoaded).expenses;
+      emit(ExpenseLoading());
+      try {
+        final updatedExpense = await repository.updateExpense(event.expense);
+        final updatedList = currentList.map((expense) {
+          return expense.id == updatedExpense.id ? updatedExpense : expense;
+        }).toList();
+        emit(ExpenseLoaded(updatedList));
+      } catch (e) {
+        emit(ExpenseError(e.toString()));
+      }
     }
   }
 
@@ -42,12 +72,16 @@ class ExpenseBloc extends Bloc<ExpenseEvent, ExpenseState> {
     DeleteExpenseEvent event,
     Emitter<ExpenseState> emit,
   ) async {
-    try {
-      await repository.deleteExpense(event.id);
-      // Automatically refresh the expense list state after a successful deletion
-      add(LoadExpensesEvent());
-    } catch (e) {
-      emit(ExpenseError(e.toString()));
+    if (state is ExpenseLoaded) {
+      final currentList = (state as ExpenseLoaded).expenses;
+      emit(ExpenseLoading());
+      try {
+        await repository.deleteExpense(event.id);
+        final updatedList = currentList.where((expense) => expense.id != event.id).toList();
+        emit(ExpenseLoaded(updatedList));
+      } catch (e) {
+        emit(ExpenseError(e.toString()));
+      }
     }
   }
 }
