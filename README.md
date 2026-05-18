@@ -27,8 +27,7 @@ The **Dashboard** acts as the core entry point and analytical control hub for th
 
 * **Key Components & Layout:** * Features an elegant welcome panel displaying user tracking profiles.
 * **State Management Handling:** Listens to global provider scopes to ensure calculated aggregate counters reflect live updates across disparate data layers immediately.
-<img width="499" height="610" alt="image" src="https://github.com/user-attachments/assets/adc1aefb-0c80-4320-b221-8b2585c8ff24" />
-
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/927ee0f5-37d5-42f5-91d9-689ec3b48dbc" />
 ---
 
 ### 2. Expense Ledger System (`ExpensesPage`)
@@ -39,8 +38,9 @@ The **Expenses** view is built explicitly around capturing, tracking, and breaki
   * Integrates interactive creation forms to quickly post and publish fresh outlays.
   * Incorporates proper visual fallbacks, including full-screen `CircularProgressIndicator` elements during network transit and reactive error states with retry actions if endpoints timeout.
 * **State Management Handling:** Utilizes `ExpenseBloc` streams to transition smoothly through lifecycle states (`ExpenseLoading`, `ExpenseLoaded`, `ExpenseError`), decoupling remote web service actions from view rendering.
-<img width="493" height="602" alt="image" src="https://github.com/user-attachments/assets/5c47099f-6b1d-4973-9bd2-fe2d0735592b" />
-
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/01a5e061-4314-4956-8b3a-39dde6c291a8" />
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/aebeef1f-68e5-4799-ac10-e5d104fef088" />
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/fee8ae10-8b31-4297-8d5d-2875f5961425" />
 ---
 
 ### 3. Lending & Credit Matrix (`TransactionsPage`)
@@ -52,8 +52,8 @@ The **Transactions** interface handles the modular peer-to-peer tracking of outs
   * **Status & Settlement Badges:** Individual item records include stylized status tags (**You Owe** in soft red vs. **They Owe** in soft green, paired with a secondary toggle badge for **Pending** or **Paid** conditions).
   * **Action Controls:** Houses checkmark buttons to rapidly mark items as settled, alongside dedicated context keys for editing fields or deleting records entirely.
 * **State Management Handling:** Driven by the root-provided `TransactionBloc`. It seamlessly intercepts user actions—such as tapping item checkmarks to fire a status toggle event—and updates state objects to maintain architectural integrity.
-* <img width="499" height="609" alt="image" src="https://github.com/user-attachments/assets/9ac381fe-0bb2-4fb1-8cf8-f18f7b3312d3" />
-
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/dd02089b-ce65-484a-b563-8dccaa47d6b7" />
+<img width="576" height="1280" alt="image" src="https://github.com/user-attachments/assets/de22ca40-d15a-4cc0-a767-083704638684" />
 
 ## 📂 Complete Project Directory Structure
 
