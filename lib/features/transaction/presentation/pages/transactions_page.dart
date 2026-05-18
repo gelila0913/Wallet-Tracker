@@ -490,4 +490,122 @@ class _TransactionsPageState extends State<TransactionsPage> {
       },
     );
   }
+
+  void _showEditTransactionDialog(BuildContext context, TransactionEntity transaction) {
+    final TextEditingController nameController = TextEditingController(text: transaction.personName);
+    final TextEditingController descriptionController = TextEditingController(text: transaction.description);
+    final TextEditingController amountController = TextEditingController(text: transaction.amount.toStringAsFixed(2));
+    bool isYouOwe = transaction.isYouOwe;
+    bool isPaid = transaction.isPaid;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setStateBottomSheet) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Edit Transaction', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Person Name'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Amount', prefixText: 'ETB '),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Type:'),
+                      DropdownButton<bool>(
+                        value: isYouOwe,
+                        items: const [
+                          DropdownMenuItem(value: true, child: Text('You Owe')),
+                          DropdownMenuItem(value: false, child: Text('They Owe')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setStateBottomSheet(() => isYouOwe = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Status:'),
+                      DropdownButton<bool>(
+                        value: isPaid,
+                        items: const [
+                          DropdownMenuItem(value: false, child: Text('Pending')),
+                          DropdownMenuItem(value: true, child: Text('Paid')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setStateBottomSheet(() => isPaid = val);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final amount = double.tryParse(amountController.text);
+                        if (nameController.text.isNotEmpty && descriptionController.text.isNotEmpty && amount != null) {
+                          final updatedTransaction = TransactionEntity(
+                            id: transaction.id,
+                            personName: nameController.text,
+                            description: descriptionController.text,
+                            amount: amount,
+                            isYouOwe: isYouOwe,
+                            isPaid: isPaid,
+                            date: transaction.date,
+                          );
+                          context.read<TransactionBloc>().add(EditTransactionEvent(updatedTransaction));
+                          Navigator.pop(ctx);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill all fields correctly'),
+                              backgroundColor: Colors.redAccent,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: const Color(0xFF00829B),
+                      ),
+                      child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
