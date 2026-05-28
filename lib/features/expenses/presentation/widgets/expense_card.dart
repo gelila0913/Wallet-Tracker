@@ -64,6 +64,7 @@ class ExpenseCard extends StatelessWidget {
           Row(
             children: [
               Text(
+                // UI text display ony in string format
                 '-\$${expense.amount.toStringAsFixed(2)}',
                 style: const TextStyle(
                   fontSize: 16,
